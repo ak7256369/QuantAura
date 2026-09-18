@@ -27,7 +27,7 @@ Convert: pandoc research/manuscript.md -o manuscript.docx
 
 ¹ COMSATS University Islamabad, Lahore Campus
 
-*Correspondence: aritopcom@gmail.com (update to institutional COMSATS email before final submission)*
+*Correspondence: sp23-bcs-003@cuilahore.edu.pk*
 
 **JEL codes:** G14 (Information and Market Efficiency), G17 (Financial Forecasting), C58 (Financial Econometrics), C45 (Neural Networks)
 
