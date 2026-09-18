@@ -1,6 +1,0 @@
-# The run log is append-only, and two writers can touch it: the CI run and any
-# local run. Git's default merge treats concurrent appends as a conflict; union
-# takes both sides' lines instead. Order is not meaningful (every row carries
-# its own timestamp) and posted_today() matches by date, so a duplicate row
-# cannot cause a duplicate post.
-*.jsonl merge=union

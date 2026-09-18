@@ -1,3 +1,9 @@
+# Subfolders — each is its own git repo
+web/
+quantaura-youtube/
+quantaura-x/
+quantaura-telegram-bot/
+
 # Environment / secrets
 .env
 .env.local
