@@ -1,0 +1,125 @@
+name: Build QuantAura Widget
+
+# Builds the desktop widget on a clean GitHub-hosted runner (never a developer's
+# machine) from the audited source, and publishes the Windows installer as the
+# canonical download. This is the only trusted way to produce a shippable .exe:
+# a build from an infected dev machine could ship the injected payload.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish a GitHub Release with the installer"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "widget-v*"
+
+permissions:
+  contents: write        # upload release assets
+
+concurrency:
+  group: widget-build
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: quantaura-widget
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: quantaura-widget/package-lock.json
+
+      # Guardrail: fail the build if the config-injector signature reappears in
+      # widget source. Cheap insurance given the repo's history.
+      - name: Malware signature guardrail
+        shell: bash
+        run: |
+          hits="$(grep -rIlE "global\.o=|atob\(" . \
+                    --include=*.js --include=*.ts --include=*.jsx \
+                    --include=*.tsx --include=*.mjs --include=*.cjs \
+                  | grep -v node_modules || true)"
+          if [ -n "$hits" ]; then
+            echo "::error::Malware signature found in widget source:"; echo "$hits"; exit 1
+          fi
+          echo "Widget source clean."
+
+      - name: Install dependencies (from lockfile)
+        run: npm ci
+
+      - name: Build renderer + Windows installer
+        # vite build → dist/ (renderer), then electron-builder → release/*.exe.
+        # --publish never: this workflow controls publishing, not electron-builder.
+        run: |
+          npm run build:vite
+          npx electron-builder --win nsis --publish never
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quantaura-widget-setup
+          path: quantaura-widget/release/*.exe
+          if-no-files-found: error
+          retention-days: 14
+
+  # Publish the installer to quantaura.tech as the public download. Runs on a
+  # Linux runner (the SSH/SCP actions are Linux-only) and only when we actually
+  # release, so ordinary builds don't touch the server.
+  publish-to-server:
+    needs: build
+    if: github.event_name == 'push' || inputs.release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download built installer
+        uses: actions/download-artifact@v4
+        with:
+          name: quantaura-widget-setup
+          path: installer
+
+      - name: Normalize installer filename
+        run: |
+          exe="$(ls installer/*.exe | head -1)"
+          cp "$exe" installer/QuantAura-Widget-Setup.exe
+          ls -la installer
+
+      - name: Decode deploy key
+        run: |
+          KEY=$(echo "${{ secrets.SERVER_SSH_KEY }}" | base64 -d)
+          if ! printf '%s' "$KEY" | grep -q "BEGIN .*PRIVATE KEY"; then
+            echo "SERVER_SSH_KEY did not decode to a private key."; exit 1
+          fi
+          while IFS= read -r line; do
+            [ -n "$line" ] && echo "::add-mask::$line"
+          done <<< "$KEY"
+          {
+            echo "SSH_PRIVATE_KEY<<__KEY_EOF__"
+            echo "$KEY"
+            echo "__KEY_EOF__"
+          } >> "$GITHUB_ENV"
+
+      - name: Ensure remote downloads directory
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          script: mkdir -p /home/quantaura.tech/downloads
+
+      - name: Upload installer to quantaura.tech
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          source: installer/QuantAura-Widget-Setup.exe
+          target: /home/quantaura.tech/downloads
+          strip_components: 1

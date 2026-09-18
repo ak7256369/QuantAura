@@ -1,0 +1,24 @@
+{
+  "n": 5940,
+  "unconditional_mean_fwd_return": -0.001820822454767607,
+  "round_trip_cost": 0.003,
+  "by_signal": {
+    "BUY": {
+      "n": 1425,
+      "mean_fwd_return": 0.0024958903170555816,
+      "p_up": 0.5319298245614035
+    },
+    "HOLD": {
+      "n": 2693,
+      "mean_fwd_return": -0.00238623036584947,
+      "p_up": 0.4708503527664315
+    },
+    "SELL": {
+      "n": 1822,
+      "mean_fwd_return": -0.004361257249116997,
+      "p_up": 0.4846322722283205
+    }
+  },
+  "directional_accuracy": 0.5226362796427472,
+  "regime_macro_f1": 0.8098647390437544
+}

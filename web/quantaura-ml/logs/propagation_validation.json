@@ -1,0 +1,301 @@
+{
+  "meta": {
+    "phase": "C \u2014 out-of-sample validation gate",
+    "generated": "2026-07-30T17:07:14Z",
+    "design": "Single temporal split: first 60% of aligned candles estimate the rates, last 40% measures what actually happened. The matched control is recomputed within each split, so the comparison is never contaminated across the boundary.",
+    "horizon_candles": 6,
+    "min_events_to_publish": 25
+  },
+  "verdict": {
+    "pooled_oos": {
+      "follow_rate": 0.4877,
+      "control_rate": 0.3366,
+      "lift": 0.1511,
+      "n_events": 486,
+      "n_control": 4311,
+      "z": 6.611,
+      "p_value": 0.0,
+      "significant": true
+    },
+    "coins_positive_oos_lift": 9,
+    "coins_evaluated": 9,
+    "coins_passing": [
+      "ETHUSDT",
+      "BNBUSDT",
+      "SOLUSDT",
+      "XRPUSDT",
+      "ADAUSDT",
+      "AVAXUSDT",
+      "DOTUSDT",
+      "LINKUSDT",
+      "DOGEUSDT"
+    ],
+    "mean_oos_lift": 0.1459,
+    "mean_abs_calibration_error": 0.0958,
+    "gate_passed": true,
+    "gate_rule": "Pooled out-of-sample lift significant at p<0.05 AND more than half of coins showing positive OOS lift. Per-coin forecasts additionally require their own positive OOS lift and n_test >= 25."
+  },
+  "per_coin": {
+    "ETHUSDT": {
+      "train": {
+        "n_events": 91,
+        "n_converged": 38,
+        "follow_rate": 0.4176,
+        "n_control": 780,
+        "control_converged": 252,
+        "control_rate": 0.3231,
+        "median_lag_hours": 12
+      },
+      "test": {
+        "n_events": 48,
+        "n_converged": 30,
+        "follow_rate": 0.625,
+        "n_control": 270,
+        "control_converged": 126,
+        "control_rate": 0.4667,
+        "median_lag_hours": 8
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1583,
+      "oos_z": 2.022,
+      "oos_p_value": 0.0432,
+      "oos_significant": true,
+      "in_sample_lift": 0.0945,
+      "calibration_error": 0.2074,
+      "status": "pass"
+    },
+    "BNBUSDT": {
+      "train": {
+        "n_events": 88,
+        "n_converged": 42,
+        "follow_rate": 0.4773,
+        "n_control": 927,
+        "control_converged": 242,
+        "control_rate": 0.2611,
+        "median_lag_hours": 10
+      },
+      "test": {
+        "n_events": 58,
+        "n_converged": 29,
+        "follow_rate": 0.5,
+        "n_control": 463,
+        "control_converged": 167,
+        "control_rate": 0.3607,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1393,
+      "oos_z": 2.065,
+      "oos_p_value": 0.039,
+      "oos_significant": true,
+      "in_sample_lift": 0.2162,
+      "calibration_error": 0.0227,
+      "status": "pass"
+    },
+    "SOLUSDT": {
+      "train": {
+        "n_events": 82,
+        "n_converged": 40,
+        "follow_rate": 0.4878,
+        "n_control": 732,
+        "control_converged": 217,
+        "control_rate": 0.2964,
+        "median_lag_hours": 12
+      },
+      "test": {
+        "n_events": 50,
+        "n_converged": 24,
+        "follow_rate": 0.48,
+        "n_control": 472,
+        "control_converged": 162,
+        "control_rate": 0.3432,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1368,
+      "oos_z": 1.92,
+      "oos_p_value": 0.0548,
+      "oos_significant": false,
+      "in_sample_lift": 0.1914,
+      "calibration_error": -0.0078,
+      "status": "pass"
+    },
+    "XRPUSDT": {
+      "train": {
+        "n_events": 78,
+        "n_converged": 29,
+        "follow_rate": 0.3718,
+        "n_control": 871,
+        "control_converged": 245,
+        "control_rate": 0.2813,
+        "median_lag_hours": 8
+      },
+      "test": {
+        "n_events": 54,
+        "n_converged": 28,
+        "follow_rate": 0.5185,
+        "n_control": 547,
+        "control_converged": 200,
+        "control_rate": 0.3656,
+        "median_lag_hours": 14
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1529,
+      "oos_z": 2.209,
+      "oos_p_value": 0.0272,
+      "oos_significant": true,
+      "in_sample_lift": 0.0905,
+      "calibration_error": 0.1467,
+      "status": "pass"
+    },
+    "ADAUSDT": {
+      "train": {
+        "n_events": 81,
+        "n_converged": 26,
+        "follow_rate": 0.321,
+        "n_control": 785,
+        "control_converged": 196,
+        "control_rate": 0.2497,
+        "median_lag_hours": 12
+      },
+      "test": {
+        "n_events": 55,
+        "n_converged": 23,
+        "follow_rate": 0.4182,
+        "n_control": 532,
+        "control_converged": 146,
+        "control_rate": 0.2744,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1438,
+      "oos_z": 2.241,
+      "oos_p_value": 0.025,
+      "oos_significant": true,
+      "in_sample_lift": 0.0713,
+      "calibration_error": 0.0972,
+      "status": "pass"
+    },
+    "AVAXUSDT": {
+      "train": {
+        "n_events": 81,
+        "n_converged": 29,
+        "follow_rate": 0.358,
+        "n_control": 892,
+        "control_converged": 207,
+        "control_rate": 0.2321,
+        "median_lag_hours": 8
+      },
+      "test": {
+        "n_events": 53,
+        "n_converged": 23,
+        "follow_rate": 0.434,
+        "n_control": 516,
+        "control_converged": 155,
+        "control_rate": 0.3004,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1336,
+      "oos_z": 1.997,
+      "oos_p_value": 0.0458,
+      "oos_significant": true,
+      "in_sample_lift": 0.1259,
+      "calibration_error": 0.076,
+      "status": "pass"
+    },
+    "DOTUSDT": {
+      "train": {
+        "n_events": 85,
+        "n_converged": 35,
+        "follow_rate": 0.4118,
+        "n_control": 949,
+        "control_converged": 276,
+        "control_rate": 0.2908,
+        "median_lag_hours": 12
+      },
+      "test": {
+        "n_events": 63,
+        "n_converged": 22,
+        "follow_rate": 0.3492,
+        "n_control": 620,
+        "control_converged": 176,
+        "control_rate": 0.2839,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.0653,
+      "oos_z": 1.089,
+      "oos_p_value": 0.2762,
+      "oos_significant": false,
+      "in_sample_lift": 0.121,
+      "calibration_error": -0.0626,
+      "status": "pass"
+    },
+    "LINKUSDT": {
+      "train": {
+        "n_events": 88,
+        "n_converged": 42,
+        "follow_rate": 0.4773,
+        "n_control": 749,
+        "control_converged": 262,
+        "control_rate": 0.3498,
+        "median_lag_hours": 10
+      },
+      "test": {
+        "n_events": 50,
+        "n_converged": 33,
+        "follow_rate": 0.66,
+        "n_control": 354,
+        "control_converged": 143,
+        "control_rate": 0.404,
+        "median_lag_hours": 8
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.256,
+      "oos_z": 3.418,
+      "oos_p_value": 0.0006,
+      "oos_significant": true,
+      "in_sample_lift": 0.1275,
+      "calibration_error": 0.1827,
+      "status": "pass"
+    },
+    "DOGEUSDT": {
+      "train": {
+        "n_events": 81,
+        "n_converged": 32,
+        "follow_rate": 0.3951,
+        "n_control": 745,
+        "control_converged": 261,
+        "control_rate": 0.3503,
+        "median_lag_hours": 10
+      },
+      "test": {
+        "n_events": 55,
+        "n_converged": 25,
+        "follow_rate": 0.4545,
+        "n_control": 537,
+        "control_converged": 176,
+        "control_rate": 0.3277,
+        "median_lag_hours": 12
+      },
+      "split_row": 2590,
+      "n_rows": 4318,
+      "oos_lift": 0.1268,
+      "oos_z": 1.891,
+      "oos_p_value": 0.0586,
+      "oos_significant": false,
+      "in_sample_lift": 0.0448,
+      "calibration_error": 0.0594,
+      "status": "pass"
+    }
+  }
+}

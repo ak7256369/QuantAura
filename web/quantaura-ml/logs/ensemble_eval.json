@@ -1,0 +1,180 @@
+{
+  "weights": {
+    "lstm": 0.158,
+    "xgboost": 0.1542,
+    "transformer": 0.4338,
+    "kan": 0.2541
+  },
+  "val_f1": {
+    "transformer": 0.9444,
+    "xgboost": 0.7324,
+    "kan": 0.973,
+    "lstm": 0.6954
+  },
+  "test": {
+    "transformer": 0.8035,
+    "xgboost": 0.7518,
+    "kan": 0.7768,
+    "lstm": 0.753,
+    "ensemble": 0.8258,
+    "ensemble_accuracy": 0.8217,
+    "persistence_baseline_f1": 0.7012,
+    "gated@0.50": {
+      "f1_gated": 0.8252,
+      "signals_issued": 3455,
+      "signal_hit_rate": 0.8695,
+      "signal_base_rate": 0.2887,
+      "lift": 3.01
+    },
+    "gated@0.55": {
+      "f1_gated": 0.8204,
+      "signals_issued": 3244,
+      "signal_hit_rate": 0.8896,
+      "signal_base_rate": 0.2887,
+      "lift": 3.08
+    }
+  },
+  "lstm_coverage": 0.998,
+  "test_aligned": {
+    "lstm": 0.7621,
+    "transformer": 0.8035,
+    "xgboost": 0.7518,
+    "kan": 0.7768,
+    "ensemble": 0.8258,
+    "ensemble_lstm_rows": 0.8255,
+    "n_rows": 6410,
+    "n_rows_lstm": 6400
+  },
+  "confusion_matrices": {
+    "Transformer": [
+      [
+        1063,
+        315,
+        7
+      ],
+      [
+        138,
+        2087,
+        484
+      ],
+      [
+        0,
+        349,
+        1967
+      ]
+    ],
+    "XGBoost": [
+      [
+        1049,
+        329,
+        7
+      ],
+      [
+        233,
+        2059,
+        417
+      ],
+      [
+        4,
+        654,
+        1658
+      ]
+    ],
+    "KAN": [
+      [
+        1059,
+        304,
+        22
+      ],
+      [
+        239,
+        2079,
+        391
+      ],
+      [
+        31,
+        461,
+        1824
+      ]
+    ],
+    "LSTM": [
+      [
+        4200,
+        1279,
+        53
+      ],
+      [
+        1134,
+        7497,
+        2173
+      ],
+      [
+        39,
+        1775,
+        7450
+      ]
+    ]
+  },
+  "feature_importance": [
+    {
+      "name": "snap_rsi_14",
+      "importance": 100.0
+    },
+    {
+      "name": "snap_ema_26_dist",
+      "importance": 78.7
+    },
+    {
+      "name": "tf_trend_agree",
+      "importance": 67.9
+    },
+    {
+      "name": "bb_width_rank",
+      "importance": 42.9
+    },
+    {
+      "name": "snap_trend_z",
+      "importance": 32.0
+    },
+    {
+      "name": "rsi4h_mean_6",
+      "importance": 28.0
+    },
+    {
+      "name": "snap_macd_norm",
+      "importance": 16.9
+    },
+    {
+      "name": "snap_ema_cross",
+      "importance": 15.2
+    },
+    {
+      "name": "snap_bb_position",
+      "importance": 12.9
+    },
+    {
+      "name": "snap_ema_12_dist",
+      "importance": 10.3
+    },
+    {
+      "name": "ctx_fed_funds_rate",
+      "importance": 7.6
+    },
+    {
+      "name": "snap_ichimoku_base_dist",
+      "importance": 7.1
+    },
+    {
+      "name": "ctx_dxy_return",
+      "importance": 6.3
+    },
+    {
+      "name": "ret4h_std_168",
+      "importance": 6.0
+    },
+    {
+      "name": "rsi4h_mean_12",
+      "importance": 5.9
+    }
+  ]
+}

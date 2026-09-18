@@ -1,0 +1,88 @@
+# Read the bot's PM2 status and recent log lines without needing a shell on
+# the VPS. Manual-only: this never runs on push.
+name: Bot logs
+
+on:
+  workflow_dispatch:
+    inputs:
+      lines:
+        description: Log lines to show
+        required: false
+        default: '80'
+
+concurrency:
+  group: bot-logs
+  cancel-in-progress: true
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Same in-memory key handling as deploy.yml — see the comment there for
+      # why the key is passed by value rather than written to a file.
+      - name: Decode deploy key
+        env:
+          RAW: ${{ secrets.SERVER_SSH_KEY }}
+        run: |
+          if printf '%s' "$RAW" | grep -q "BEGIN .*PRIVATE KEY"; then
+            KEY="$RAW"
+          else
+            KEY=$(printf '%s' "$RAW" | tr -d '[:space:]' | base64 -d 2>/dev/null || true)
+          fi
+          if ! printf '%s' "$KEY" | grep -q "BEGIN .*PRIVATE KEY"; then
+            echo "SERVER_SSH_KEY is neither a PEM private key nor its base64."
+            exit 1
+          fi
+          while IFS= read -r line; do
+            [ -n "$line" ] && echo "::add-mask::$line"
+          done <<< "$KEY"
+          {
+            echo "SSH_PRIVATE_KEY<<__DEPLOY_KEY_EOF__"
+            echo "$KEY"
+            echo "__DEPLOY_KEY_EOF__"
+          } >> "$GITHUB_ENV"
+
+      - name: Fetch status and logs
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ env.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          command_timeout: 2m
+          envs: LINES
+          script: |
+            echo "───── pm2 status ─────"
+            pm2 describe quantaura-bot | grep -E "status|uptime|restarts|script path|exec cwd|out log|error log" || true
+
+            # The bot is an HTTP client of quantaura-api over loopback, so the
+            # failure that looks like "the bot is broken" is usually "the bot is
+            # talking to the wrong port". Print only the API base, never the
+            # rest of .env.
+            echo
+            echo "───── signal source ─────"
+            BOT_DIR=/home/quantaura.tech/bots/quantaura-telegram-bot
+            BASE=$(grep -E '^BOT_API_BASE=' "$BOT_DIR/.env" | cut -d= -f2- || true)
+            echo "BOT_API_BASE in bot .env: ${BASE:-<unset — code default>}"
+            API_DIR=/home/quantaura.tech/public_html/quantaura-api
+            echo "PORT in quantaura-api .env: $(grep -E '^PORT=' "$API_DIR/.env" | cut -d= -f2- || echo '<unset>')"
+            # The account page's Telegram card hides itself when the API has no
+            # TELEGRAM_BOT_USERNAME, so an unset value here looks to a user like
+            # the feature was never built.
+            echo "TELEGRAM_BOT_USERNAME in quantaura-api .env: $(grep -E '^TELEGRAM_BOT_USERNAME=' "$API_DIR/.env" | cut -d= -f2- || echo '<unset>')"
+            echo
+            echo "listening node/python sockets:"
+            ss -lntp 2>/dev/null | grep -E "node|python" || true
+            echo
+            PROBE="${BASE:-http://127.0.0.1:5000}"
+            echo "unauthenticated probe of $PROBE/api/signals?symbol=BTCUSDT :"
+            curl -s -o /tmp/p.txt -w "  http %{http_code}, %{size_download} bytes, %{content_type}\n" \
+              --max-time 20 "$PROBE/api/signals?symbol=BTCUSDT" || true
+            echo "  first 200 bytes: $(head -c 200 /tmp/p.txt)"
+
+            echo
+            echo "───── last $LINES lines ─────"
+            pm2 logs quantaura-bot --lines "$LINES" --nostream || true
+        env:
+          LINES: ${{ inputs.lines }}

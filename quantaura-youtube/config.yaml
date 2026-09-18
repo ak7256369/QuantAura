@@ -1,0 +1,271 @@
+# QuantAura channel pipeline configuration.
+# Secrets are NEVER here — they come from environment variables (see README).
+
+channel:
+  name: "QuantAura Signals"
+  symbol: "BTCUSDT"
+  asset_label: "Bitcoin"
+  timezone_note: "All times UTC"
+
+# The ecosystem's other public surfaces. Every output links to every other one,
+# so the same list is duplicated in the three sibling repos (they are separate
+# deployments and cannot share a module):
+#   web/quantaura/src/lib/social.ts · quantaura-telegram-bot/bot/config.js
+#   quantaura-x/config.yaml
+# Public handles, not secrets — a missing env var must never silently drop the
+# links out of a published video description.
+links:
+  site: "https://quantaura.tech"
+  # The handle the X pipeline authenticates as (see quantaura-x --check), not a
+  # brand name. Renaming it on X keeps followers and history; if that happens,
+  # update all four repos.
+  x: "https://x.com/abdulla05775100"
+  telegram_channel: "https://t.me/quantaura_signals"
+  telegram_bot: "https://t.me/QuantAuraBot"
+  blog: "https://quantaura.tech/blog"
+  portfolio: "https://quantaura.tech/portfolio"
+  record: "https://quantaura.tech/predictions"
+
+api:
+  # The public QuantAura API. /api/signals/stats needs no auth; /api/signals
+  # redacts confidence + per-model detail unless the caller is premium, which is
+  # why the pipeline logs in as a dedicated service account (QA_EMAIL/QA_PASSWORD).
+  base_url: "https://quantaura.tech"
+  timeout_seconds: 30
+  retries: 3
+  retry_backoff_seconds: 20
+
+market:
+  # Binance public REST — no key required, 1200 req/min unauthenticated.
+  klines_url: "https://api.binance.com/api/v3/klines"
+  chart_days: 7
+  chart_interval: "1h"
+  fear_greed_url: "https://api.alternative.me/fng/?limit=1"
+
+scoring:
+  # How a past call is graded, in plain terms the video can state out loud.
+  #
+  # This is DIRECTIONAL scoring on realised price change over the model's own
+  # forecast horizon. It is deliberately NOT the model's training label
+  # (a trend-regime label built from an EMA spread) — a viewer can verify a
+  # price move on any chart, but cannot verify an EMA-regime label. Grading on
+  # something the audience can check themselves is the whole point of the
+  # channel, so the simpler, harsher rule wins.
+  horizon_hours: 24
+  # |24h change| below this counts as a flat market: HOLD is right, BUY/SELL wrong.
+  flat_band_pct: 1.0
+  # A daily cron records each call minutes after it starts, so yesterday's call
+  # comes due minutes after today's run begins. If a call is due within this
+  # window, the run waits for it instead of letting grading slip a whole day.
+  wait_for_due_minutes: 20
+
+script:
+  # Free-tier LLMs. Primary first; the pipeline falls through the list on
+  # quota/error so a single provider outage never costs a day's video.
+  providers:
+    # A floating alias leads deliberately. Google retires pinned ids out from
+    # under free keys — gemini-2.5-flash still appears in the models list but
+    # 404s for keys created after its cutoff, which is precisely the failure a
+    # daily unattended pipeline must not have. Behaviour drift is the lesser
+    # risk here because every output is schema-validated and fact-checked
+    # downstream regardless of which model produced it.
+    - name: "gemini"
+      model: "gemini-flash-latest"
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+      api_key_env: "GEMINI_API_KEY"
+    # Pinned second: free-tier quota is metered per model, so a 429 on the
+    # alias does not imply a 429 here.
+    - name: "gemini"
+      model: "gemini-3.6-flash"
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+      api_key_env: "GEMINI_API_KEY"
+    # Groq is the only entry here that is not Google, so it is the one that
+    # actually saves a day: both gemini entries above sit behind the same
+    # backend and 503'd together on 2026-08-18, taking the daily video with
+    # them because this fallback was already dead.
+    #
+    # It was dead because Groq shut down llama-3.3-70b-versatile on 2026-08-16
+    # (announced 2026-06-17). Nothing noticed for two days — a fallback is
+    # invisible until the primary fails, which is exactly when you find out.
+    # openai/gpt-oss-120b is Groq's own named replacement for it and is a
+    # production-tier model that supports the response_format json_object this
+    # caller sends.
+    - name: "groq"
+      model: "openai/gpt-oss-120b"
+      endpoint: "https://api.groq.com/openai/v1/chat/completions"
+      api_key_env: "GROQ_API_KEY"
+    # Same per-model-quota logic as the second gemini entry, and the same
+    # retirement risk: two ids means one being retired or rate-limited is not
+    # the whole provider going down. Also production tier, also json_object.
+    - name: "groq"
+      model: "openai/gpt-oss-20b"
+      endpoint: "https://api.groq.com/openai/v1/chat/completions"
+      api_key_env: "GROQ_API_KEY"
+  max_attempts_per_provider: 2
+  temperature: 0.7
+
+factcheck:
+  # A generated script that fails verification twice is discarded and no video
+  # is published. A missed day is invisible; a wrong number is permanent.
+  max_regenerations: 2
+  # Deterministic filter — these never reach a viewer regardless of what any
+  # model returns. Matched case-insensitively as whole phrases.
+  banned_phrases:
+    - "financial advice"
+    - "investment advice"
+    - "guaranteed"
+    - "guarantee"
+    - "risk-free"
+    - "riskless"
+    - "can't lose"
+    - "cannot lose"
+    - "sure thing"
+    - "you should buy"
+    - "you should sell"
+    - "buy now"
+    - "sell now"
+    - "get rich"
+    - "to the moon"
+    - "price target"
+    - "will hit"
+    - "will reach"
+    - "moonshot"
+    - "10x"
+    - "100x"
+
+disclaimer:
+  # Appended by CODE to every narration and description. Never model-generated,
+  # never optional.
+  narration: "This is an automated research project, not financial advice."
+  description: |
+    ---
+    QuantAura is a final-year research project: a four-model machine-learning
+    ensemble (LSTM, Transformer, XGBoost, KAN) that publishes a daily Bitcoin
+    regime call and its own running accuracy — wins and losses.
+
+    This video is generated automatically. The narration is AI-synthesised and
+    the script is written by an AI model from the ensemble's real output.
+
+    NOT FINANCIAL ADVICE. Nothing here is a recommendation to buy or sell any
+    asset. The model is frequently wrong; that is exactly why the scoreboard is
+    public. Do your own research.
+
+voice:
+  # Kokoro-82M voice id. af_* = American female, am_* = American male,
+  # bf_/bm_ = British. af_heart is the most natural of the v1.0 set.
+  voice_id: "af_heart"
+  speed: 1.02
+  lang: "en-us"
+  sentence_gap_seconds: 0.28
+  model_url: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx"
+  voices_url: "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin"
+
+video:
+  width: 1080
+  height: 1920
+  fps: 30
+  # Ken Burns drift, in pixels over the whole scene — small enough to read as
+  # polish rather than motion sickness.
+  drift_px: 26
+  # Transition between scenes, centred on the narration boundary so the picture
+  # changes as the sentence does. Clips are rendered longer by this amount so
+  # the overlap does not shorten the video out of sync with the voice.
+  #
+  # fadeblack, not fade: these cards are dense with text, and a straight
+  # cross-dissolve ghosts two full layouts over each other — at the midpoint
+  # every heading and number appears twice, offset. Dipping through black
+  # keeps exactly one card legible at any instant.
+  transition: "fadeblack"
+  transition_seconds: 0.4
+  fade_in_seconds: 0.5
+  fade_out_seconds: 0.6
+  max_seconds: 179   # Shorts must stay under 3 minutes
+  captions: true
+  # Optional one-time Veo assets. Missing files are skipped, not an error, so
+  # the pipeline runs before any branding exists.
+  intro: "assets/intro.mp4"
+  outro: "assets/outro.mp4"
+
+weekly:
+  # The Sunday long-form recap (weekly-video.yml, 15:00 UTC — two hours after
+  # the daily, and in the same concurrency group so state commits never race).
+  width: 1920
+  height: 1080
+  # Fewer graded calls than this and the recap skips the week: a "recap" of one
+  # call is filler, and filler is what the mass-produced-content policy demotes.
+  # Lowered 3 → 2 on 2026-08-07 so the first Sunday recap runs while the
+  # scoreboard is still young; raise it back once the log has depth.
+  min_resolved_calls: 2
+  # Warning threshold only — a long recap still publishes. The actual runtime is
+  # set by weekly.word_budget(), because every scene lasts exactly as long as the
+  # narration spoken over it. 300s ≈ four minutes plus a minute of headroom.
+  max_seconds: 300
+  caption_fontsize: 46
+  caption_margin_v: 84
+  # Research segments rotate by ISO week number — content lives in weekly.py.
+
+portfolio:
+  # The paper portfolio: a virtual $10,000 traded mechanically on the model's
+  # own committed calls, fees included, next to buy-and-hold. Published even
+  # though the tradeability report says it probably does NOT beat holding
+  # after fees — publishing that anyway is the whole brand. Never real money
+  # (real-money auto-trading is deliberately rejected; see the product docs).
+  start_usd: 10000
+  # Per side, so 0.30% round trip — the same cost the tradeability report
+  # and the site's honesty page already state.
+  fee_pct_per_side: 0.15
+
+theme:
+  bg: "#0B0E11"
+  panel: "#151A21"
+  grid: "#1F2730"
+  text: "#EAECEF"
+  muted: "#848E9C"
+  up: "#16C784"
+  down: "#EA3943"
+  flat: "#F0B90B"
+  accent: "#5B8DEF"
+
+upload:
+  # Public since 2026-09-03: YouTube API audit approved 2026-08-07, followed by
+  # a clean private-upload run (Aug 5–Sep 2, no failures) as the supervised
+  # rollout. Set back to "private" if you ever need an operator-review tap again
+  # (uploads then need a manual visibility change in Studio before they're seen).
+  visibility: "public"
+  category_id: "25"          # News & Politics — the closest fit YouTube offers
+  made_for_kids: false
+  # Sent as status.containsSyntheticMedia on every upload, so the "AI use"
+  # question is never a manual click in Studio.
+  #
+  # YouTube's bar for this flag is *realistic* altered/synthetic content: a
+  # real person appearing to say something they did not, altered footage of a
+  # real event, a realistic scene that never occurred. A drawn chart narrated
+  # by a generic synthetic voice meets none of those, and AI writing assistance
+  # is explicitly excluded — so strictly this could be false. It ships true
+  # because a channel whose premise is disclosure should err toward disclosing.
+  # Set false for the strict reading; nothing else changes.
+  contains_synthetic_media: true
+  base_tags:
+    - "bitcoin"
+    - "btc"
+    - "machine learning"
+    - "crypto"
+    - "algorithmic trading"
+    - "data science"
+
+drive:
+  # Every daily video is mirrored to Google Drive so it can be posted to X by
+  # hand. X's API has been pay-per-use since 2026-02-06 — no free write tier,
+  # and $0.200 for any post containing a link — so the automated X poster in the
+  # quantaura-x repo is disabled and this is how the call reaches X.
+  #
+  # The folder is created by the pipeline itself under the drive.file scope,
+  # which can only ever see files this app made. Renaming it in the Drive UI is
+  # fine as long as GDRIVE_FOLDER_ID is pinned; rename it without pinning and
+  # the next run quietly makes a new one under the old name.
+  folder_name: "QuantAura daily videos"
+  # folder_id: ""            # optional; overridden by the GDRIVE_FOLDER_ID secret
+  # Its own short disclaimer rather than disclaimer.description, which is a
+  # multi-paragraph YouTube block that opens with a "---" rule. Same wording the
+  # retired X pipeline used, so the account's voice does not change mid-stream.
+  caption_disclaimer: "Automated research — not financial advice."

@@ -1,0 +1,269 @@
+{
+  "updated_at": "2026-09-02T17:10:45+00:00",
+  "total_calls": 29,
+  "resolved_calls": 28,
+  "pending_calls": 1,
+  "hits": 15,
+  "misses": 13,
+  "accuracy_pct": 53.6,
+  "accuracy_30d_pct": 53.6,
+  "resolved_30d": 28,
+  "streak": {
+    "kind": "hit",
+    "length": 1
+  },
+  "by_signal": {
+    "BUY": {
+      "n": 13,
+      "accuracy_pct": 38.5
+    },
+    "HOLD": {
+      "n": 13,
+      "accuracy_pct": 76.9
+    },
+    "SELL": {
+      "n": 2,
+      "accuracy_pct": 0.0
+    }
+  },
+  "last_resolved": {
+    "date": "2026-09-01",
+    "made_at": "2026-09-01T17:09:14+00:00",
+    "made_at_ms": 1788282554000,
+    "symbol": "BTCUSDT",
+    "signal": "HOLD",
+    "signal_raw": "HOLD",
+    "gated": false,
+    "confidence": 47.2,
+    "price": 77562.77,
+    "horizon_hours": 24,
+    "flat_band_pct": 1.0,
+    "resolved": true,
+    "resolved_at": "2026-09-02T17:10:45+00:00",
+    "price_then": 77154.0,
+    "change_pct": -0.53,
+    "correct": true
+  },
+  "flat_band_pct": 1.0,
+  "horizon_hours": 24,
+  "portfolio": {
+    "start_usd": 10000.0,
+    "fee_pct_per_side": 0.15,
+    "policy": "BUY = fully long, SELL = fully in cash, HOLD = unchanged",
+    "since": "2026-08-05",
+    "days": 29,
+    "value_usd": 11477.89,
+    "return_pct": 14.78,
+    "hold_value_usd": 11929.09,
+    "hold_return_pct": 19.29,
+    "vs_hold_pct": -4.51,
+    "fees_paid_usd": 61.2,
+    "trades": 4,
+    "position": "cash",
+    "curve": [
+      {
+        "date": "2026-08-05",
+        "value": 9985.0,
+        "hold": 10000.0,
+        "price": 64723.43,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-06",
+        "value": 9995.84,
+        "hold": 10010.86,
+        "price": 64793.72,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-07",
+        "value": 9905.06,
+        "hold": 9919.94,
+        "price": 64205.23,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-08",
+        "value": 10028.77,
+        "hold": 10043.84,
+        "price": 65007.16,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-09",
+        "value": 10061.58,
+        "hold": 10076.69,
+        "price": 65219.82,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-10",
+        "value": 9994.65,
+        "hold": 10009.67,
+        "price": 64785.99,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-11",
+        "value": 9900.86,
+        "hold": 9915.73,
+        "price": 64178.0,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-12",
+        "value": 9835.96,
+        "hold": 9850.74,
+        "price": 63757.37,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-13",
+        "value": 9846.66,
+        "hold": 9861.46,
+        "price": 63826.72,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-14",
+        "value": 9646.61,
+        "hold": 9675.62,
+        "price": 62623.93,
+        "signal": "SELL"
+      },
+      {
+        "date": "2026-08-15",
+        "value": 9646.61,
+        "hold": 9740.41,
+        "price": 63043.25,
+        "signal": "SELL"
+      },
+      {
+        "date": "2026-08-16",
+        "value": 9646.61,
+        "hold": 9743.19,
+        "price": 63061.28,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-17",
+        "value": 9646.61,
+        "hold": 9845.96,
+        "price": 63726.45,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-18",
+        "value": 9632.14,
+        "hold": 9995.76,
+        "price": 64696.01,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-19",
+        "value": 9694.43,
+        "hold": 10060.4,
+        "price": 65114.35,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-20",
+        "value": 10648.42,
+        "hold": 11050.4,
+        "price": 71521.99,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-21",
+        "value": 11503.73,
+        "hold": 11938.0,
+        "price": 77266.83,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-22",
+        "value": 11492.14,
+        "hold": 11925.98,
+        "price": 77189.02,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-23",
+        "value": 11533.08,
+        "hold": 11968.46,
+        "price": 77463.99,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-24",
+        "value": 11636.03,
+        "hold": 12075.29,
+        "price": 78155.45,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-25",
+        "value": 11693.07,
+        "hold": 12134.49,
+        "price": 78538.61,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-26",
+        "value": 11649.28,
+        "hold": 12089.05,
+        "price": 78244.45,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-27",
+        "value": 11953.45,
+        "hold": 12404.69,
+        "price": 80287.44,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-28",
+        "value": 11964.75,
+        "hold": 12416.43,
+        "price": 80363.39,
+        "signal": "BUY"
+      },
+      {
+        "date": "2026-08-29",
+        "value": 11597.73,
+        "hold": 12035.55,
+        "price": 77898.18,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-30",
+        "value": 11792.74,
+        "hold": 12237.92,
+        "price": 79208.0,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-08-31",
+        "value": 11768.62,
+        "hold": 12212.89,
+        "price": 79046.01,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-09-01",
+        "value": 11547.79,
+        "hold": 11983.72,
+        "price": 77562.77,
+        "signal": "HOLD"
+      },
+      {
+        "date": "2026-09-02",
+        "value": 11477.89,
+        "hold": 11929.09,
+        "price": 77209.13,
+        "signal": "SELL"
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+numpy==1.26.4
+pandas==3.0.3
+scipy==1.13.0
+statsmodels==0.14.6
+scikit-learn==1.5.0
+tensorflow==2.16.1
+torch==2.3.0
+xgboost==2.0.3
+requests==2.34.2
+flask==3.0.3
+joblib==1.4.2
+
+# Frozen 2026-08-01 for paper reproducibility. Bootstrap RNG is seeded
+# (np.random.default_rng(42) in btc_effects.py); analyses are deterministic
+# given identical candle data. Market data itself moves - exact reproduction
+# of tables requires the archived logs/*.json artifacts in this repo.

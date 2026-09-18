@@ -1,0 +1,400 @@
+name: Train models
+
+# Moves training off the workstation. The autopilot only ran while that machine
+# was on, which is why the models sat 8 days stale — availability, not speed,
+# was the problem, and these models are small enough that a 4-core runner is a
+# fair substitute for a CPU-only desktop (TF 2.16 has no Windows GPU support,
+# so nothing was GPU-accelerated to begin with).
+#
+# Two modes, one workflow:
+#   finetune — one autopilot cycle: fresh data, 4 epochs, accept/reject on the
+#              fixed holdout. Needs the cached prep + replay buffers.
+#   full     — trainer.py from scratch: regenerates prep, reseeds the replay
+#              buffers, retrains all four models. This is what bootstraps the
+#              caches, so it must run once before any finetune can.
+#
+# Weights are 5.9 MB and already live in git; the deploy detects a
+# quantaura-ml-only change and restarts ml-api alone, so a committed model
+# reaches production without a web rebuild.
+
+on:
+  # Measured on a 4-core runner, not estimated: full retrain 62 min (59 with
+  # prep cached, +3 for the collection it now always does), fine-tune 15 min.
+  #
+  # Budget is per-ACCOUNT, not per-repo. The other pipelines (YouTube daily +
+  # weekly, X, Telegram, deploys) run ~354 min/month, so this schedule costs
+  # 6*62 + 61*15 = 1,285 and lands the account at ~1,639 of a 2,000 free tier —
+  # inside the 1,600-1,700 target with headroom for manual reruns.
+  #
+  # Times avoid 13:00-16:30 UTC, when the video and X pipelines run. The 02:00
+  # fine-tune lands before the day's content is generated, so a video and a
+  # post never quote a model the scoreboard has since improved on.
+  schedule:
+    # Fine-tune every 12h. Each cycle sees ~3 new 4h candles; at 3x/day it
+    # would see ~1, and consecutive cycles already overlap ~99%.
+    # (Was paused 2026-08-08 while the equal-lookback retrain shipped — the new
+    # holdout's val window sat inside the OLD split's train window, so gating
+    # the then-production models on it would have been optimistic. The models
+    # live since 14:32 UTC that day are trained against this split; consistent.)
+    - cron: '0 2,14 * * *'
+    # Full retrain every ~6 days. Deliberately more frequent than weekly:
+    # a stale model measured BELOW the persistence baseline (0.6891 vs 0.7014)
+    # while a retrain scored above it on the same split, so drift costs more
+    # than the runtime does. Thinned from every-5-days when the equal-lookback
+    # LSTM pushed a full retrain from 62 to a measured 101 minutes:
+    # 5×101 + 61×15 + ~345 (other pipelines) ≈ 1,765 of the 2,000 free
+    # minutes — inside the 1,600–1,800 target; six retrains would breach it.
+    - cron: '0 4 1,7,13,19,25 * *'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'datacheck, finetune (one cycle), or full (retrain)'
+        type: choice
+        options: [datacheck, finetune, full]
+        default: finetune
+      cycles:
+        description: 'finetune only: how many cycles to run'
+        type: string
+        default: '1'
+      no_commit:
+        description: 'Train but do not commit the weights'
+        type: boolean
+        default: false
+
+# Never two trainers at once: they would race on the caches and on saved_models,
+# and the loser's weights would be the ones that shipped.
+concurrency:
+  group: train-models
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  # To dispatch deploy.yml after shipping weights — see the Deploy step.
+  actions: write
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    # The 6h ceiling is GitHub's; a full retrain measured 107 min on the
+    # workstation, so this leaves generous headroom for a slower runner.
+    timeout-minutes: 330
+
+    defaults:
+      run:
+        working-directory: quantaura-ml
+
+    steps:
+      # The 2026-08-08 run at 365d lookback died POST-JOB with "No space left
+      # on device" — every work step green, then the runner could not write its
+      # own cleanup log. torch+TF wheels, a ~1-2 GB data/prep, two cache saves
+      # (tar + zstd temp copies) and the pip cache together sit right at the
+      # ~14 GB the runner offers, and the 730d lookback grows prep further.
+      # The preinstalled Android SDK and .NET are ~20 GB this job never touches.
+      - name: Free runner disk
+        working-directory: /
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc || true
+          df -h / | tail -1
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: quantaura-ml/requirements.txt
+
+      - name: Install dependencies
+        # torch + tensorflow is ~2.5 GB of wheels; the pip cache above makes
+        # this a download-once cost per runner image.
+        run: pip install -r requirements.txt
+
+      # ── State ───────────────────────────────────────────────────────────────
+      # The whole data/prep dir is cached: 1.2 GB on disk, ~34 MB in the cache.
+      # That 35x is real, not a truncated upload — prep is mostly sliding-window
+      # sequences (trans_train_X 418 MB, lstm_train_X 407 MB) where each window
+      # repeats ~98% of the previous one, which zstd eats. Keeping the train
+      # split in there is what lets a fine-tune seed its own replay buffers via
+      # _seed_replay_from_prep(); trainer.py never seeds them.
+      #
+      # restore/save are split rather than using actions/cache, because caches
+      # are IMMUTABLE. A read-write cache on a fixed key ("…-latest") is a trap:
+      # the first fine-tune would save it, every later fine-tune would hit it
+      # exactly, and prep from a newer retrain would never be picked up — the
+      # holdout would silently freeze at whatever the first run happened to see,
+      # while still reporting a cache hit.
+      #
+      # So: everyone RESTORES the newest by prefix; only a full retrain SAVES.
+      # A full retrain also does NOT restore, because trainer.py's PHASE 1 skips
+      # collection when prep exists — restoring made the retrain reuse the
+      # previous run's data, so a scheduled retrain would train on ever-staler
+      # market data forever while every run looked green.
+
+      # `inputs.*` is EMPTY on a schedule trigger — the `default:` above applies
+      # only to the dispatch form. Without this, every `inputs.mode == 'full'`
+      # is false and every `!= 'full'` is true, so a cron run would restore
+      # prep, skip both training steps and succeed having done nothing.
+      # Resolve once here; every later step reads steps.cfg.outputs.*.
+      - name: Resolve mode
+        id: cfg
+        shell: bash
+        run: |
+          if [ -n "${{ inputs.mode }}" ]; then
+            MODE="${{ inputs.mode }}"
+          elif [ "${{ github.event.schedule }}" = "0 4 1,6,11,16,21,26 * *" ]; then
+            MODE=full
+          else
+            MODE=finetune
+          fi
+          # A scheduled run must be able to ship; only an explicit dispatch can
+          # ask for a dry run.
+          NC="${{ inputs.no_commit }}"; [ -z "$NC" ] && NC=false
+          CY="${{ inputs.cycles }}";    [ -z "$CY" ] && CY=1
+          echo "mode=$MODE"     >> $GITHUB_OUTPUT
+          echo "no_commit=$NC"  >> $GITHUB_OUTPUT
+          echo "cycles=$CY"     >> $GITHUB_OUTPUT
+          echo "resolved: mode=$MODE no_commit=$NC cycles=$CY (event=${{ github.event_name }})"
+
+      - name: Restore holdout splits
+        if: steps.cfg.outputs.mode != 'full'
+        uses: actions/cache/restore@v4
+        with:
+          path: quantaura-ml/data/prep
+          key: qa-prep-v1-
+          restore-keys: qa-prep-v1-
+
+      - name: Restore replay buffers
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            quantaura-ml/data/replay_*.pkl
+            quantaura-ml/data/.replay_seeded
+            quantaura-ml/data/master.db
+          key: qa-replay-v1-
+          restore-keys: qa-replay-v1-
+
+      - name: Report restored state
+        run: |
+          echo "### Restored state" >> $GITHUB_STEP_SUMMARY
+          echo '```' | tee -a $GITHUB_STEP_SUMMARY
+          du -sh data/prep 2>/dev/null || echo "data/prep: absent"
+          ls -la data/replay_*.pkl 2>/dev/null | awk '{printf "%-30s %6.1f MB\n", $NF, $5/1048576}' \
+            || echo "replay buffers: absent"
+          echo '```' | tee -a $GITHUB_STEP_SUMMARY
+
+      # ── Train ───────────────────────────────────────────────────────────────
+      - name: Data reachability check
+        if: steps.cfg.outputs.mode == 'datacheck'
+        # Cheap gate before an expensive retrain. curl proved which HOSTS answer
+        # a runner; this proves the actual client code reaches them — the
+        # python-binance URL override for spot, and the proxy fallback that only
+        # engages after every direct futures mirror fails.
+        run: |
+          python - <<'PY'
+          import pandas as pd
+          from data_sources.binance_spot import fetch_ohlcv, BINANCE_API_URLS
+          from data_sources.binance_futures import fetch_all_derivatives
+
+          print(f"spot host order: {BINANCE_API_URLS[0]}")
+          df = fetch_ohlcv("BTCUSDT", "4h", days=5)
+          assert len(df) > 10, f"too few candles: {len(df)}"
+          for col in ("trades", "taker_buy_base", "volume"):
+              assert col in df.columns and df[col].notna().all(), f"{col} missing/NaN"
+              assert df[col].abs().sum() > 0, f"{col} is all zeros — a degraded source"
+          print(f"SPOT OK  rows={len(df)}  cols={list(df.columns)}")
+
+          d = fetch_all_derivatives("BTCUSDT")
+          assert len(d) > 10, f"too few derivative rows: {len(d)}"
+          for col in ("funding_rate", "open_interest_change",
+                      "long_short_ratio", "taker_buy_ratio"):
+              assert col in d.columns, f"{col} missing"
+              # A zero-filled column is the silent-degradation failure mode the
+              # proxy exists to prevent, so assert real variation, not presence.
+              assert d[col].abs().sum() > 0, f"{col} is all zeros — zero-filled, not fetched"
+          print(f"FUTURES OK  rows={len(d)}")
+          print(d.tail(2).to_string())
+          PY
+
+      - name: Full retrain
+        id: full
+        if: steps.cfg.outputs.mode == 'full'
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        # trainer.py's stages are resume-safe: it skips any model whose file
+        # already exists. saved_models/ is committed, so a fresh checkout always
+        # has all four — the first cloud run regenerated prep and then logged
+        # "[SKIP] LSTM — lstm_model.keras already exists" for every model,
+        # trained nothing, and scored the old weights against the new split.
+        # A run asked for a full retrain must actually retrain, so clear the
+        # artifacts first (trainer.py:11 documents this as the way).
+        # Scalers go too: invariant #2 refits them on the new train split.
+        run: |
+          echo "Clearing model artifacts so the stages do not skip:"
+          ls saved_models/ | sed 's/^/  /'
+          rm -f saved_models/*.keras saved_models/*.pt saved_models/*.pkl
+          # prep is not restored for this mode, but a stale directory could
+          # still exist from the checkout; PHASE 1 skips collection if it does.
+          rm -rf data/prep
+          # Replay buffers anchor fine-tuning in "the original training
+          # distribution" — after a retrain that means THIS run's train split.
+          # The restore step just pulled the previous split's buffers into the
+          # workspace; clearing them (and the seeded flag) makes the next
+          # fine-tune reseed from the prep this run generates, instead of
+          # quietly anchoring every future cycle to the pre-retrain
+          # distribution. The save step then publishes the empty state.
+          rm -f data/replay_*.pkl data/.replay_seeded
+          python trainer.py
+
+      - name: Fine-tune cycle
+        id: finetune
+        if: steps.cfg.outputs.mode == 'finetune'
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        # --no-git-push: this workflow owns committing, so the push is visible
+        # in the run log rather than buried inside the trainer.
+        # A missing replay buffer or holdout split exits 2 by design — see the
+        # guard in autopilot.py's __main__.
+        run: python autopilot.py --cycles "${{ steps.cfg.outputs.cycles }}" --no-git-push
+
+      # ── Ship ────────────────────────────────────────────────────────────────
+      - name: Quality gate
+        id: gate
+        # Full retrains only. A fine-tune writes no ensemble_eval.json, so this
+        # would read the STALE one from the checkout (logs/ are committed) and
+        # gate today's cycle on the last retrain's numbers. Its candidates are
+        # already judged per-model against the fixed holdout inside run_cycle —
+        # that is what ACCEPTED/REJECTED in the log means.
+        if: steps.cfg.outputs.mode == 'full'
+        # `shell: bash` for pipefail. The default is `bash -e {0}` WITHOUT it, so
+        # a pipeline reports tee's status and the python exit(1) below would be
+        # swallowed — the commit would still skip (that reads the output var),
+        # but the job would go GREEN over a model with no demonstrable skill,
+        # which is the outcome this gate exists to prevent.
+        shell: bash
+        # The first cloud run reported success while producing an ensemble BELOW
+        # the persistence baseline — "today's regime continues" would have beaten
+        # it. A model with no demonstrable skill must never reach production, and
+        # a green tick over one is worse than a red one, so assert it here rather
+        # than trusting the exit code.
+        #
+        # Note this gate covers `full` only. A finetune's candidates are already
+        # judged per-model against the fixed holdout inside run_cycle().
+        run: |
+          python - <<'PY' | tee -a "$GITHUB_STEP_SUMMARY"
+          import json, os, sys
+          try:
+              t = json.load(open("logs/ensemble_eval.json"))["test"]
+          except Exception as e:
+              print(f"### Quality gate: SKIPPED — no ensemble_eval.json ({e})")
+              sys.exit(0)
+          ens, base = t.get("ensemble"), t.get("persistence_baseline_f1")
+          print(f"### Quality gate\n\n"
+                f"| metric | value |\n|---|---|\n"
+                f"| ensemble macro-F1 | **{ens}** |\n"
+                f"| persistence baseline | {base} |\n"
+                f"| margin | {None if ens is None or base is None else round(ens - base, 4)} |\n")
+          if ens is None or base is None:
+              print("Gate SKIPPED — metrics absent."); sys.exit(0)
+          ok = ens > base
+          print(("**PASS** — the ensemble beats the baseline." if ok else
+                 "**FAIL** — the ensemble does not beat 'today's regime continues', "
+                 "so it has no demonstrable skill. Weights will not be committed."))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"passed={'true' if ok else 'false'}\n")
+          sys.exit(0 if ok else 1)
+          PY
+
+      - name: Commit weights
+        id: commit
+        # A full retrain must clear the gate. A fine-tune has already gated
+        # itself per-model, so it ships whatever run_cycle accepted — requiring
+        # gate.passed here would make it empty and silently ship nothing, ever.
+        if: ${{ steps.cfg.outputs.no_commit != 'true' && (steps.cfg.outputs.mode != 'full' || steps.gate.outputs.passed == 'true') }}
+        working-directory: .
+        run: |
+          set -e
+          if [ -z "$(git status --porcelain quantaura-ml/saved_models quantaura-ml/logs)" ]; then
+            echo "No weight changes — the quality gate rejected every candidate." \
+              | tee -a $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          git config user.name  "quantaura-trainer[bot]"
+          git config user.email "trainer@quantaura.tech"
+          git add quantaura-ml/saved_models quantaura-ml/logs
+          git commit -m "models: ${{ steps.cfg.outputs.mode }} $(date -u +%F' '%H:%M)"
+          # The channel pipelines commit to this branch on their own schedule,
+          # so a push race is normal rather than exceptional.
+          for i in 1 2 3; do
+            if git push; then
+              echo "Weights pushed on attempt $i."
+              echo "shipped=true" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Push rejected — rebasing (attempt $i/3)"
+            git pull --rebase origin main || { git rebase --abort || true; exit 1; }
+          done
+          echo "Could not push weights after 3 attempts."; exit 1
+
+      - name: Deploy the new weights
+        # A push made with GITHUB_TOKEN does NOT fire deploy.yml's push trigger
+        # (GitHub's recursion guard), so without this the models sit in git and
+        # production keeps serving the old ones — which is exactly what happened
+        # on the first shipping run: weights committed at 05:39, ml-api still on
+        # the July-31 weights. An explicit dispatch is not subject to the guard.
+        #
+        # Runs only when the previous step actually committed something.
+        if: ${{ steps.commit.outcome == 'success' && steps.commit.outputs.shipped == 'true' }}
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Deploy to quantaura.tech" --ref main
+          echo "Deploy dispatched — ml-api will reload the new weights." \
+            | tee -a $GITHUB_STEP_SUMMARY
+
+      # Saved after training, never before: a job that dies mid-retrain must not
+      # publish a half-written prep directory that every later fine-tune would
+      # then restore and score its holdout against.
+      # Keyed on the TRAINING step's own outcome, not the job's. Regenerated
+      # prep is valid data whether or not the resulting models beat the
+      # baseline, and discarding it on a gate failure would leave no holdout at
+      # all — which the guard in autopilot.py then reads as "cannot fine-tune",
+      # blocking every subsequent cycle over a verdict about weights.
+      - name: Save holdout splits
+        if: ${{ !cancelled() && steps.full.conclusion == 'success' }}
+        uses: actions/cache/save@v4
+        with:
+          path: quantaura-ml/data/prep
+          key: qa-prep-v1-${{ github.run_id }}
+
+      - name: Save replay buffers
+        # Every mode: a full retrain reseeds them from the new train split, and
+        # each fine-tune cycle folds fresh data in, so they always move.
+        if: ${{ !cancelled() && (steps.full.conclusion == 'success' || steps.finetune.conclusion == 'success') }}
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            quantaura-ml/data/replay_*.pkl
+            quantaura-ml/data/.replay_seeded
+            quantaura-ml/data/master.db
+          key: qa-replay-v1-${{ github.run_id }}
+
+      - name: Summarise
+        if: always()
+        run: |
+          echo "### Result" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          tail -40 logs/autopilot.log 2>/dev/null || echo "(no autopilot log)"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: train-${{ github.run_number }}
+          path: |
+            quantaura-ml/logs/*.log
+            quantaura-ml/logs/*.json
+          retention-days: 7
+          if-no-files-found: ignore

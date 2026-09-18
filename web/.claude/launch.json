@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quantaura-web",
+      "cwd": "quantaura",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "quantaura-api",
+      "cwd": "quantaura-api",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/dev-with-memory-db.js"],
+      "port": 5001
+    }
+  ]
+}

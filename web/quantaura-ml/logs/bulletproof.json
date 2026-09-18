@@ -1,0 +1,294 @@
+{
+  "meta": {
+    "generated": "2026-07-31T20:15:38Z",
+    "purpose": "Independence-robust re-test + cross-exchange replication"
+  },
+  "binance": {
+    "all_events": {
+      "pooled": {
+        "follow_rate": 0.4877,
+        "control_rate": 0.338,
+        "lift": 0.1496,
+        "n_events": 486,
+        "n_control": 4337,
+        "z": 6.545,
+        "p_value": 0.0,
+        "significant": true
+      },
+      "coins_positive": 9,
+      "coins_evaluated": 9,
+      "per_coin": {
+        "ETHUSDT": {
+          "n_events": 48,
+          "follow_rate": 0.625,
+          "control_rate": 0.4607,
+          "lift": 0.1643
+        },
+        "BNBUSDT": {
+          "n_events": 58,
+          "follow_rate": 0.5,
+          "control_rate": 0.3584,
+          "lift": 0.1416
+        },
+        "SOLUSDT": {
+          "n_events": 50,
+          "follow_rate": 0.48,
+          "control_rate": 0.3432,
+          "lift": 0.1368
+        },
+        "XRPUSDT": {
+          "n_events": 54,
+          "follow_rate": 0.5185,
+          "control_rate": 0.3714,
+          "lift": 0.1471
+        },
+        "ADAUSDT": {
+          "n_events": 55,
+          "follow_rate": 0.4182,
+          "control_rate": 0.2739,
+          "lift": 0.1443
+        },
+        "AVAXUSDT": {
+          "n_events": 53,
+          "follow_rate": 0.434,
+          "control_rate": 0.3031,
+          "lift": 0.1309
+        },
+        "DOTUSDT": {
+          "n_events": 63,
+          "follow_rate": 0.3492,
+          "control_rate": 0.2807,
+          "lift": 0.0685
+        },
+        "LINKUSDT": {
+          "n_events": 50,
+          "follow_rate": 0.66,
+          "control_rate": 0.4123,
+          "lift": 0.2477
+        },
+        "DOGEUSDT": {
+          "n_events": 55,
+          "follow_rate": 0.4545,
+          "control_rate": 0.3352,
+          "lift": 0.1194
+        }
+      }
+    },
+    "non_overlapping_events": {
+      "pooled": {
+        "follow_rate": 0.488,
+        "control_rate": 0.346,
+        "lift": 0.142,
+        "n_events": 375,
+        "n_control": 659,
+        "z": 4.486,
+        "p_value": 7e-06,
+        "significant": true
+      },
+      "coins_positive": 9,
+      "coins_evaluated": 9,
+      "per_coin": {
+        "ETHUSDT": {
+          "n_events": 36,
+          "follow_rate": 0.6389,
+          "control_rate": 0.5116,
+          "lift": 0.1273
+        },
+        "BNBUSDT": {
+          "n_events": 47,
+          "follow_rate": 0.5319,
+          "control_rate": 0.3288,
+          "lift": 0.2031
+        },
+        "SOLUSDT": {
+          "n_events": 36,
+          "follow_rate": 0.4444,
+          "control_rate": 0.3623,
+          "lift": 0.0821
+        },
+        "XRPUSDT": {
+          "n_events": 39,
+          "follow_rate": 0.5641,
+          "control_rate": 0.378,
+          "lift": 0.1861
+        },
+        "ADAUSDT": {
+          "n_events": 42,
+          "follow_rate": 0.4048,
+          "control_rate": 0.284,
+          "lift": 0.1208
+        },
+        "AVAXUSDT": {
+          "n_events": 44,
+          "follow_rate": 0.4091,
+          "control_rate": 0.2632,
+          "lift": 0.1459
+        },
+        "DOTUSDT": {
+          "n_events": 52,
+          "follow_rate": 0.3462,
+          "control_rate": 0.2967,
+          "lift": 0.0495
+        },
+        "LINKUSDT": {
+          "n_events": 39,
+          "follow_rate": 0.6923,
+          "control_rate": 0.4098,
+          "lift": 0.2825
+        },
+        "DOGEUSDT": {
+          "n_events": 40,
+          "follow_rate": 0.425,
+          "control_rate": 0.3735,
+          "lift": 0.0515
+        }
+      }
+    },
+    "note": "Non-overlapping: consecutive treatment events spaced > horizon so no evaluation windows overlap; control rows thinned to the same spacing. Removes the dependence objection to the z-test."
+  },
+  "coinbase": {
+    "products": {
+      "BTCUSDT": "BTC-USD",
+      "ETHUSDT": "ETH-USD",
+      "SOLUSDT": "SOL-USD",
+      "XRPUSDT": "XRP-USD",
+      "ADAUSDT": "ADA-USD",
+      "AVAXUSDT": "AVAX-USD",
+      "DOTUSDT": "DOT-USD",
+      "LINKUSDT": "LINK-USD",
+      "DOGEUSDT": "DOGE-USD"
+    },
+    "excluded": {
+      "BNBUSDT": "BNB does not trade on Coinbase"
+    },
+    "n_4h_rows": 4380,
+    "all_events": {
+      "pooled": {
+        "follow_rate": 0.4955,
+        "control_rate": 0.3309,
+        "lift": 0.1645,
+        "n_events": 440,
+        "n_control": 3859,
+        "z": 6.866,
+        "p_value": 0.0,
+        "significant": true
+      },
+      "coins_positive": 8,
+      "coins_evaluated": 8,
+      "per_coin": {
+        "ETHUSDT": {
+          "n_events": 50,
+          "follow_rate": 0.6,
+          "control_rate": 0.4419,
+          "lift": 0.1581
+        },
+        "SOLUSDT": {
+          "n_events": 52,
+          "follow_rate": 0.5192,
+          "control_rate": 0.3348,
+          "lift": 0.1845
+        },
+        "XRPUSDT": {
+          "n_events": 57,
+          "follow_rate": 0.5439,
+          "control_rate": 0.351,
+          "lift": 0.1929
+        },
+        "ADAUSDT": {
+          "n_events": 57,
+          "follow_rate": 0.4211,
+          "control_rate": 0.2812,
+          "lift": 0.1399
+        },
+        "AVAXUSDT": {
+          "n_events": 52,
+          "follow_rate": 0.4423,
+          "control_rate": 0.2899,
+          "lift": 0.1524
+        },
+        "DOTUSDT": {
+          "n_events": 65,
+          "follow_rate": 0.3538,
+          "control_rate": 0.2823,
+          "lift": 0.0716
+        },
+        "LINKUSDT": {
+          "n_events": 50,
+          "follow_rate": 0.64,
+          "control_rate": 0.4238,
+          "lift": 0.2162
+        },
+        "DOGEUSDT": {
+          "n_events": 57,
+          "follow_rate": 0.4912,
+          "control_rate": 0.3346,
+          "lift": 0.1567
+        }
+      }
+    },
+    "non_overlapping_events": {
+      "pooled": {
+        "follow_rate": 0.4872,
+        "control_rate": 0.3361,
+        "lift": 0.1511,
+        "n_events": 312,
+        "n_control": 604,
+        "z": 4.448,
+        "p_value": 9e-06,
+        "significant": true
+      },
+      "coins_positive": 8,
+      "coins_evaluated": 8,
+      "per_coin": {
+        "ETHUSDT": {
+          "n_events": 35,
+          "follow_rate": 0.6286,
+          "control_rate": 0.4545,
+          "lift": 0.174
+        },
+        "SOLUSDT": {
+          "n_events": 34,
+          "follow_rate": 0.4706,
+          "control_rate": 0.3286,
+          "lift": 0.142
+        },
+        "XRPUSDT": {
+          "n_events": 38,
+          "follow_rate": 0.6053,
+          "control_rate": 0.3778,
+          "lift": 0.2275
+        },
+        "ADAUSDT": {
+          "n_events": 39,
+          "follow_rate": 0.3846,
+          "control_rate": 0.2716,
+          "lift": 0.113
+        },
+        "AVAXUSDT": {
+          "n_events": 40,
+          "follow_rate": 0.4,
+          "control_rate": 0.3117,
+          "lift": 0.0883
+        },
+        "DOTUSDT": {
+          "n_events": 51,
+          "follow_rate": 0.3725,
+          "control_rate": 0.2959,
+          "lift": 0.0766
+        },
+        "LINKUSDT": {
+          "n_events": 36,
+          "follow_rate": 0.6667,
+          "control_rate": 0.4194,
+          "lift": 0.2473
+        },
+        "DOGEUSDT": {
+          "n_events": 39,
+          "follow_rate": 0.4359,
+          "control_rate": 0.3049,
+          "lift": 0.131
+        }
+      }
+    }
+  }
+}

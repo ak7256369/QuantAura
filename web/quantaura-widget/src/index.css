@@ -1,0 +1,123 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── QuantAura Design Tokens ──────────────────────────────────────────────── */
+:root {
+  --bg-primary:     #0a0b10;
+  --bg-secondary:   #0e1016;
+  --bg-card:        rgba(255, 255, 255, 0.04);
+  --bg-card-solid:  #12141c;
+  --accent-primary: #818cf8;
+  --accent-purple:  #8b5cf6;
+  --signal-buy:     #34d399;
+  --signal-sell:    #f87171;
+  --signal-hold:    #fbbf24;
+  --text-primary:   #f4f6fb;
+  --text-secondary: #9aa4b8;
+  --text-muted:     #8b95ac;
+  --text-accent:    #a5b4fc;
+  --border-subtle:  rgba(255, 255, 255, 0.06);
+  --border-card:    rgba(255, 255, 255, 0.08);
+}
+
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  width:    100%;
+  height:   100%;
+  margin:   0;
+  padding:  0;
+  overflow: hidden;
+}
+
+body {
+  /* Transparent background for Electron frameless window */
+  background: transparent;
+  color:       var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size:   14px;
+  -webkit-font-smoothing: antialiased;
+  /* Prevent text selection on drag */
+  user-select: none;
+}
+
+/* ── Widget Root Card ─────────────────────────────────────────────────────── */
+.widget-root {
+  background:     rgba(10, 11, 16, 0.88);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border:         1px solid rgba(255, 255, 255, 0.08);
+  border-radius:  16px;
+  box-shadow:
+    0 32px 80px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 1px 0 rgba(255,255,255,0.08) inset;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background:    rgba(255,255,255,0.12);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+/* ── Animations ───────────────────────────────────────────────────────────── */
+@keyframes priceFlash {
+  0%   { opacity: 0.4; transform: scale(1.04); }
+  100% { opacity: 1;   transform: scale(1); }
+}
+
+@keyframes slideUp {
+  0%   { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes glowBuy {
+  0%   { box-shadow: 0 0 5px rgba(52, 211, 153, 0.3); }
+  100% { box-shadow: 0 0 22px rgba(52, 211, 153, 0.7); }
+}
+
+@keyframes glowSell {
+  0%   { box-shadow: 0 0 5px rgba(248, 113, 113, 0.3); }
+  100% { box-shadow: 0 0 22px rgba(248, 113, 113, 0.7); }
+}
+
+.animate-slide-up   { animation: slideUp   0.3s ease-out; }
+.animate-price-flash { animation: priceFlash 0.5s ease-out; }
+.animate-glow-buy   { animation: glowBuy  2s ease-in-out infinite alternate; }
+.animate-glow-sell  { animation: glowSell 2s ease-in-out infinite alternate; }
+
+/* ── Utility Overrides ────────────────────────────────────────────────────── */
+.text-signal-buy  { color: var(--signal-buy)  !important; }
+.text-signal-sell { color: var(--signal-sell) !important; }
+.text-signal-hold { color: var(--signal-hold) !important; }
+.text-text-primary   { color: var(--text-primary);   }
+.text-text-secondary { color: var(--text-secondary); }
+.text-text-muted     { color: var(--text-muted);     }
+.text-text-accent    { color: var(--text-accent);    }
+.text-accent         { color: var(--accent-primary); }
+
+.bg-signal-buy\/10  { background-color: rgba(52, 211, 153, 0.10) !important; }
+.bg-signal-sell\/10 { background-color: rgba(248, 113, 113, 0.10) !important; }
+.bg-signal-hold\/10 { background-color: rgba(251, 191, 36, 0.10)  !important; }
+.bg-accent\/10      { background-color: rgba(129, 140, 248, 0.10) !important; }
+
+.border-white\/8    { border-color: rgba(255,255,255,0.08) !important; }
+.border-accent\/20  { border-color: rgba(129,140,248,0.20) !important; }
+
+/* ── Line clamp ───────────────────────────────────────────────────────────── */
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
